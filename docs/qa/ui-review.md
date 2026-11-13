@@ -181,3 +181,128 @@ is the same compromise platform bottom bars make.
 `./gradlew :clearchoice:assembleDebug` passed (JAVA_HOME=~/.local/jdk21,
 ANDROID_HOME=~/android-sdk). That proves the code compiles and packages; it
 does not prove the layout. No UI tests exist, and none were added.
+
+## Purple restyle
+
+The native control center was restyled to match the look of
+`docs/qa/desktop-shopping.png`. All six pages changed: Manage Apps, app
+settings, Features, Activity, Permissions and Settings. No behaviour, strings,
+click handlers, preference keys or data sources changed. No Demo Shop,
+Shopping Mode or fixture data was added back. The overlay service still uses
+the original light `Design` constants, so it is unchanged.
+
+### What changed
+
+- **Page background.** Near-black `#0D0B12` with two faint violet radial glows,
+  one at the top centre and one at the lower left (`Design.night`). The navy
+  hero gradient and the light rounded body sheet are gone. Window, status bar
+  and navigation bar are `#0D0B12`, and the light-bar icon flags are cleared so
+  the system icons draw light.
+- **Cards.** Dark translucent fill `#E01E1A2A` (88% alpha), 16dp radius, 1dp
+  border `#1FFFFFFF` (`Design.surface`). This covers app rows, groups, the
+  counts strip, the service banner, the app header, the Activity tiles and the
+  privacy note. Group header strips use a 5% white wash.
+- **Text.** Titles `#F5F2FA` bold. Secondary text `#ACA6BB`.
+- **Values.** Counts on Manage Apps and the Activity summary tiles are lilac
+  `#C9A0FF`, with muted labels. Row icons are lilac.
+- **Buttons.** Primary buttons use a violet `#8247E6` to pink `#AD3A96`
+  gradient with white text: "Add app", "Install", the active hero tab, the
+  active Activity filter and the active Permissions/Privacy tab. Secondary
+  buttons are dark grey `#2B2638` with a thin `#38FFFFFF` border: "Manage",
+  "Pause"/"Resume", the app filter, inactive filters and "Clear local
+  history". The button radius is now 14dp (it was a 24dp pill).
+- **Chips.** Status chips are small rounded chips with a thin border:
+  `#DDD7EA` on `#2B2638`, and "Allowed" in green `#8DE5AF` on `#17382A`.
+- **Navigation.** The hero tabs are a pill segmented control (`#17141F`
+  track, gradient active pill). The bottom navigation is a floating pill bar
+  with 10dp side margins. The active item has a `#3A2A5A` pill and a `#DCC3FF`
+  icon and label.
+- **Switches.** The on track is `#8B5CF6`, the off track `#6E6882` and the thumb
+  white. Disabled switches use a `#6B6578` thumb on a `#2E2A3A` track.
+- **Dialogs.** All dialogs use a new `ClearChoiceDialog` style
+  (`res/values/styles.xml`). It is based on `Theme.Material.Dialog.Alert`, with
+  a `#1F192D` background and lilac buttons.
+- **Press feedback.** Ripples are lilac at 20% alpha (`#33C9A0FF`).
+
+### Kept from earlier passes
+
+The changes below were made without touching these:
+
+- 48dp minimum touch targets (`touch()`, `pill()`, switches, nav items).
+- All `contentDescription` and tooltip text.
+- Accessibility headings and the single focus stop on toggle rows.
+- The `fit()` shrink-to-fit labels and the stacked layouts at font scale 1.3
+  and above.
+- The two-line nav labels.
+
+### Contrast (WCAG 2.x, computed)
+
+Ratios were computed from the code colours. Where a colour is translucent, it
+was first blended onto what is beneath it. "Glow" means the brightest point of
+both glows stacked (`#2F1957`); this is the worst case for text on the page.
+The card fill over the glow blends to about `#1F192D`–`#201A2F`.
+
+| Pair | Ratio |
+|------|-------|
+| Title `#F5F2FA` on page `#0D0B12` / glow `#2F1957` | 17.66 / 13.57 |
+| Secondary `#ACA6BB` on page / glow | 8.31 / 6.39 |
+| Lilac `#C9A0FF` on page / glow | 9.27 / 7.12 |
+| Title on card `#1F192D` | 15.35 |
+| Secondary on card / on group header `#2A2438` | 7.23 / 6.34 |
+| Lilac values on card / on group header | 8.06 / 7.07 |
+| White on gradient ends `#8247E6` / `#AD3A96` | 5.26 / 5.49 |
+| Title on secondary button `#2B2638` | 13.20 |
+| Chip text `#DDD7EA` on `#2B2638` | 10.43 |
+| "Allowed" `#8DE5AF` on `#17382A` | 8.54 |
+| Inactive nav and tab text `#ACA6BB` on `#17141F` | 7.72 |
+| Active nav `#DCC3FF` on `#3A2A5A` | 8.01 |
+| Dialog buttons `#C9A0FF` on `#1F192D` | 8.06 |
+| Green banner icon `#8DE5AF` on card | 11.54 |
+
+Non-text contrast (target 3:1):
+
+| Pair | Ratio | Result |
+|------|-------|--------|
+| Switch on track `#8B5CF6` / off track `#6E6882` vs card | 4.02 / 3.21 | Passes |
+| White thumb on on track / on off track | 4.23 / 5.30 | Passes |
+| Gradient button ends vs card | 3.23 / 3.09 | Passes |
+| Active gradient tab vs `#17141F` track | 3.45 / 3.31 | Passes |
+| Secondary button border vs card | about 2.0 | Below 3:1 |
+| Active nav pill `#3A2A5A` vs `#17141F` bar | 1.43 | Below 3:1 |
+
+The two pairs below 3:1 are not the only cue:
+
+- Secondary buttons carry a text label, and their fill differs from the card.
+- The active nav item also changes its icon and label colour (lilac against
+  grey) and its label weight (bold), and it reports the selected state.
+
+The disabled switch (`#6B6578` thumb on `#2E2A3A`, 2.49) is an inactive
+control, so WCAG does not require 3:1 for it. The existing Shopee tile ("S" in
+white on `#F45324`, 3.44) is large bold text and was not changed.
+
+### Not verified
+
+No emulator or device was available, so nothing was rendered. Everything below
+is unverified:
+
+1. The overall look against the reference, including how strong the glow is,
+   the card translucency and the gradient.
+2. That the system bar icons draw light on API 26–29 and on API 30 and later.
+3. Whether a white window flashes at launch. The manifest theme is still
+   `Theme.Material.Light.NoActionBar`. It was left alone to keep the change to
+   UI code. The code sets a dark window background, but only after the activity
+   starts.
+4. How the dark dialog style looks with the app picker and the list dialog.
+5. Switch tints on OEM skins.
+6. The floating nav bar with gesture navigation and with three-button
+   navigation.
+7. Large-text layouts at 1.3x, 1.5x and 2.0x after the radius and padding
+   changes. The hero tab label width now subtracts 12dp per tab for the track
+   padding.
+8. TalkBack announcements. No accessibility attributes were changed.
+
+### Verification run
+
+`./gradlew :clearchoice:assembleDebug` passed (JAVA_HOME=~/.local/jdk21,
+ANDROID_HOME=~/android-sdk). This proves the code compiles and packages. It
+does not prove the layout. Screenshots were not regenerated.

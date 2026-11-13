@@ -3,6 +3,16 @@ import android.content.*;import android.graphics.*;import android.graphics.drawa
 /** Shared native visual language from the approved generated references. */
 final class Design {
  static final int BG=0xfff5f6fc,CARD=0xffffffff,WHITE=0xff101429,MUTED=0xff52596f,PURPLE=0xff5642ff;
+ /** Dark control-center palette (purple restyle). Contrast ratios are listed in docs/qa/ui-review.md. */
+ static final int NIGHT=0xff0d0b12,GLOW=0x387c3aed,SURFACE=0xe01e1a2a,SURFACE_HEAD=0x0dffffff,EDGE=0x1fffffff,TEXT=0xfff5f2fa,SUBTLE=0xffaca6bb,LILAC=0xffc9a0ff,LILAC_SOFT=0xffdcc3ff,VIOLET=0xff8247e6,PINK=0xffad3a96,RAISED=0xff2b2638,RAISED_EDGE=0x38ffffff,NAV=0xff17141f,NAV_ACTIVE=0xff3a2a5a,CHIP_TEXT=0xffddd7ea,GREEN=0xff8de5af,GREEN_BG=0xff17382a,TRACK_ON=0xff8b5cf6,TRACK_OFF=0xff6e6882,RIPPLE=0x33c9a0ff;
+ /** Near-black page with a faint violet glow at the top and a weaker one at the lower left. */
+ static Drawable night(Context c){GradientDrawable top=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{GLOW,0x00000000});top.setGradientType(GradientDrawable.RADIAL_GRADIENT);top.setGradientCenter(.5f,0f);top.setGradientRadius(dp(c,520));GradientDrawable low=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0x1f7c3aed,0x00000000});low.setGradientType(GradientDrawable.RADIAL_GRADIENT);low.setGradientCenter(0f,1f);low.setGradientRadius(dp(c,420));return new LayerDrawable(new Drawable[]{new ColorDrawable(NIGHT),top,low});}
+ /** Dark translucent rounded surface with a thin subtle border. */
+ static GradientDrawable surface(Context c,int radius){GradientDrawable d=shape(SURFACE,dp(c,radius));d.setStroke(dp(c,1),EDGE);return d;}
+ /** Dark grey secondary control with a thin border. */
+ static GradientDrawable raised(Context c,int radius){GradientDrawable d=shape(RAISED,dp(c,radius));d.setStroke(dp(c,1),RAISED_EDGE);return d;}
+ /** Violet to pink primary fill; white text stays above 4.8:1 on both ends. */
+ static GradientDrawable primary(Context c,int radius){GradientDrawable d=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{VIOLET,PINK});d.setCornerRadius(dp(c,radius));return d;}
  static int dp(Context c,float n){return (int)(n*c.getResources().getDisplayMetrics().density+.5f);}
  static GradientDrawable shape(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(radius);return d;}
  static GradientDrawable outline(Context c,int color,int radius){GradientDrawable d=shape(color,dp(c,radius));d.setStroke(dp(c,1),0xffe0e4f0);return d;}

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark dialogs that match the purple control center. Lilac buttons on #1F192D: 8.06:1. -->
+    <style name="ClearChoiceDialog" parent="android:Theme.Material.Dialog.Alert">
+        <item name="android:colorAccent">#FFC9A0FF</item>
+        <item name="android:colorBackground">#FF1F192D</item>
+        <item name="android:textColorPrimary">#FFF5F2FA</item>
+        <item name="android:textColorSecondary">#FFACA6BB</item>
+    </style>
+</resources>
