@@ -1,22 +1,43 @@
 # ClearChoice architecture
 
-## Product boundaries
+Status as of 13 November 2026. ClearChoice annotates the original Android shopping app. It does not replace the app, and it has no Demo Shop or Shopping Mode for consumers. See the [README](../README.md) for current status.
 
-- `apps/control-center/` is the local-first web control center. On desktop, the application is presented inside a responsive Samsung Galaxy S26 Ultra frame; narrow displays use the app edge-to-edge. Dashboard state is stored under `cc-state-v1` in the current origin's `localStorage`.
-- `demo/` is a controlled, fixture-backed sample shop. It has 12 products, details and variant selectors, a shared local cart, sample coupon choices, and sample history/seller totals. Cart actions update the source store and are never sent to a payment service.
-- `apps/browser-extension/src/browser-adapter.js` is the shared source-mapped reconstruction adapter. The demo's consented session imports that adapter, which snapshots current product titles, prices and original buttons, validates references, and rechecks the original cart count after an explicitly selected reconstructed Add action. Its Close action and the original page controls remain available.
-- `packages/engine/src/` owns the source snapshot, layout and action validation contracts. The extension adapter excludes sensitive inputs and refuses stale or protected pages.
-- `services/ai-gateway/src/server.js` is a separate optional server process. The control center sends a product-only fixture snapshot only after the user opts into AI analysis. The gateway sanitizes and validates suggestions before returning a layout. A user must apply a returned layout explicitly.
-- `apps/ios/` contains the SwiftUI companion and a Safari Web Extension target. iOS runtime web access remains subject to Safari's per-site controls.
+## Capability buckets
+
+| Bucket | Contents |
+|---|---|
+| Demonstrated | 17 parser checks and 16 Android source-to-annotation checks, run against a test-only native source (not a retailer app). Native control pages build, install and run. Desktop view streams the emulator through scrcpy/H264. |
+| Unverified | Shopee and Lazada end to end. Neither app is installed on the current emulator. Compatibility and delivery-inclusive totals are unknown. |
+| Unavailable / experimental | Ad removal, tracking blocking, notification filtering and price/stock alerts are unavailable. Browser extension and iOS modules are experimental. |
+
+## Components
+
+- **Native control center** (`apps/android/`): manages app opt-ins, preferences, features, activity, permissions and pause. It uses the supplied navy/light designs.
+- **Accessibility annotation service** (`apps/android/`): considers only explicitly opted-in packages. It reads observed price bounds from the source app and draws two bounded elements: a pass-through price mark and a dismissible breakdown label. Touches on the mark reach the original app. The service ignores its own windows.
+- **Price evidence parser**: extracts observed price, delivery and mandatory fees from accessible text. It labels missing fee data as incomplete and never invents a final payable price. Covered by the 17 parser checks (`apps/android/clearchoice/src/test/run-price-evidence-tests.sh`).
+- **Instrumentation checks** (`apps/android/clearchoice/src/androidTest/`): 16 checks use a test-only native activity with no launcher entry. They cover source bounds, native tap-through, price changes, scrolling, pause and own-window stability. Raw output: [price-annotation-instrumentation.log](qa/price-annotation-instrumentation.log). Passing them is not retailer evidence.
+- **Desktop emulator view** (`apps/emulator-viewer/`): streams the actual emulator over loopback port 4300 with input forwarding. It needs a running emulator and is not hosted.
+- **Optional AI gateway** (`services/ai-gateway/`): separate process, opt-in, separate configuration. Deterministic price validation does not need it. Provider keys are never embedded in distributed apps.
 
 ## Data flow
 
-1. The control center stores profiles and app preferences in local browser storage. It does not require an account.
-2. Shopping Mode routes into `/demo/` in the same framed device.
-3. The adapter maps its reconstructed cards to `data-cc-product`, `data-cc-price`, `data-cc-currency`, `data-cc-action`, and `data-cc-cart-count` sources.
-4. A user-selected Add calls the mapped original store action once. The adapter compares the original source count before and after. Activity is labelled verified only when the source count increases exactly once.
-5. The optional AI path sends a sanitized fixture-only schema to the configured gateway. It does not send authentication, payment, form, or account fields. It does not submit purchase actions.
+1. User opts a supported app in through the native control center and enables the accessibility service.
+2. User opens the original app normally.
+3. The service observes price nodes and their bounds. The parser validates them. Ambiguous currencies, unrelated prices and stale bounds are rejected.
+4. The service draws the price mark and breakdown label. Unknown fees show as incomplete.
+5. User taps through the mark to the original app, dismisses the label, or pauses ClearChoice. Pause removes annotations.
 
-## Local preview
+The annotation does not change a merchant's charge. Login and payment screens must stay unannotated; this is a requirement, and real-app testing of it is not done.
 
-Run `npm run dev` from the repository root. The control center opens at `http://127.0.0.1:4173/`; the standalone demo is at `/demo/`. Configure the optional gateway separately with `npm run gateway` and the provider settings documented in `packages/README.md`.
+## Historical and internal work
+
+These remain in the repository and are not consumer features:
+
+- `demo/` fixture store, `apps/browser-extension/`, `packages/engine/`, `apps/control-center/` (web) and earlier reconstruction experiments. They serve internal QA and history. Older results (9 control-center, 2 extension, 1 gateway browser test; 100-cycle DemoShop run) validate those experiments only, not the current retailer path.
+- `apps/ios/` SwiftUI companion and Safari extension: experimental. iOS cannot modify arbitrary native apps. The Safari target was compiled for the simulator only.
+
+## Build and verify
+
+Fresh-clone results are in [fresh-clone-build.md](qa/fresh-clone-build.md) (13 November 2026): `npm ci`, `npm test` (16 pass), `npm run build`, parser tests (17 pass) and `assembleDebug` all passed. A JDK is required; the default system `java` was a JRE only, so `JAVA_HOME` had to point to a JDK 21. The freshly built APK SHA-256 is `21082609b1b59cf6ddc39a9daa781cff5586ac704cdb9648daf15c0b5a89a693`. It differs from the README hash `59cac52a…443b37`, which matches the committed `apps/android/ClearChoice-debug.apk`. The likely cause is non-reproducible debug builds; this is not verified.
+
+Public-file audit: [secrets-audit.md](qa/secrets-audit.md) found no keys, tokens or keystores. It lists open personal-data items (git author metadata, developer paths in logs, two unviewed design images).

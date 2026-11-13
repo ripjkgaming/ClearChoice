@@ -1,21 +1,22 @@
-# ClearChoice demo narration (target: 2:50)
+# ClearChoice video storyboard (text only)
 
-This narration is aligned to IceHacks' five equally weighted judging criteria. Keep the native Android interaction as one continuous, uncut proof segment. Any desktop/browser shots are separate and should be identified as desktop preview footage.
+Status as of 13 November 2026. Target: three minutes or less. Draft; the video is not yet recorded. The existing `ClearChoice-demo.mp4` shows the retired fixture-shop approach and must be replaced. Do not reuse its narration.
 
-**0:00–0:20 | Impact & usefulness — desktop preview**
-“Shopping pages can make it hard to compare price, seller, and product details. ClearChoice aims to make those details easier to use while leaving the original shopping controls in place. This desktop preview uses a controlled demo store and sample product data.”
+Rules: use only what is demonstrated. Name the source app honestly. Claim no retailer support unless proven end to end before recording. State prices and fees only as observed; never invent them.
 
-**0:20–0:45 | Design & user experience — desktop before/after**
-“Here is the original product list, then ClearChoice’s reconstructed view in the same phone frame. The text and prices are mapped to the observed source products. The accessibility controls adjust spacing and reading size, and the preview shows the change before it is applied.”
+**0:00–0:25 | Problem**
+“Shopping apps can show a price that is not the amount paid. Delivery and mandatory fees can appear later.”
 
-**0:45–1:45 | Technical execution — continuous Android capture**
-“This is a separate native Android DemoShop capture. I open a product, choose Medium and Sage using the source selectors, add the item, and verify the original cart shows one. I continue to the protected demo checkout. This interaction completed 100 full cycles over about 30 minutes without a recorded failure. It demonstrates the controlled DemoShop path; it does not claim integration with live retailer apps.”
+**0:25–0:55 | Control center**
+“ClearChoice leaves the original app in place. The native control center manages app opt-ins, preferences, permissions and pause.”
 
-**1:45–2:15 | Creativity & originality — desktop preview**
-“The key mechanism is source mapping: ClearChoice connects each reconstructed product and action to elements observed in the active page, then checks the source cart state after Add. If the mapping or check fails, the original controls remain available. This lets the clearer view stay tied to what the shop actually showed.”
+**0:55–1:45 | Annotation**
+“ClearChoice marks the observed price and shows a breakdown with observed delivery and mandatory fees. Unknown fees are labelled incomplete.” Show a source app. If it is the test-only source, say so. Name Shopee or Lazada only if proven end to end by recording time (app version, region, screens recorded).
 
-**2:15–2:40 | Privacy and limits — desktop settings**
-“Preferences and activity stay on this device. AI analysis is optional and requires consent and a configured gateway. A local model returned a source-linked layout, but did not follow a request to sort lowest price first. Prices and seller insights here are fixtures, no payment is submitted, and live retailer and iOS injection remain unverified.”
+**1:45–2:15 | Native interaction and pause**
+“Touches pass through the price mark to the original app. The label can be dismissed. Pause removes the annotations.”
 
-**2:40–2:50 | Presentation close**
-“ClearChoice makes the shopping interface easier to read while keeping the shopper in control of the original action.”
+**2:15–2:50 | Tested limits**
+“Demonstrated: 17 parser checks and 16 Android source-to-annotation checks, using a test-only source. Unverified: Shopee and Lazada end to end. Unavailable: ad removal, tracking blocking, notification filtering and alerts. Browser and iOS modules are experimental.”
+
+Desktop footage, if used, comes from the emulator stream and is labelled as such.

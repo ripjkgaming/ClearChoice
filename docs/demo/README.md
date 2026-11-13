@@ -1,3 +1,5 @@
+> Outdated as of 13 November 2026: `ClearChoice-demo.mp4` and this description show the retired fixture-shop (DemoShop) approach. They do not reflect the current original-app annotation approach and must be replaced. Current text storyboard: [narration.md](narration.md).
+
 # Local demo video
 
 `ClearChoice-demo.mp4` is the final 90-second portrait edit (1080×1920, H.264 video and AAC narration). `contact-sheet.jpg` samples the final video every five seconds.

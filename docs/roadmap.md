@@ -1,20 +1,33 @@
 # Roadmap
 
-## Before a public demo
+Status as of 13 November 2026. Current approach: bounded accessibility annotations over the original Android shopping app. See the [README](../README.md) for the full checklist and deadline (Monday 16 November 2026, 10:00 AM Singapore time).
 
-1. Run the Playwright E2E suite on a supported Node installation and attach retained screenshots of the home, reconstructed shop, and verified cart states.
-2. Start the optional local Ollama gateway, test the explicit consent path, and retain a real validated response. Keep the deterministic local fallback visibly distinct.
-3. Exercise the iOS app and Safari extension on a simulator/device, including iOS's per-site access flow and the localhost demo page.
-4. Complete the Android app and permission matrix with the Android owner. Keep unsupported cross-app claims out of public copy.
-5. Review reducer/adapter behavior against the browser engine's latest stale-revision and idempotency tests.
+## Done (demonstrated, test-only source)
 
-## Later
+17 parser checks and 16 Android source-to-annotation checks passed. Native control pages build and run. Fresh clone builds ([report](qa/fresh-clone-build.md)). Secrets audit done ([report](qa/secrets-audit.md)).
 
-- Add a verified retailer integration only after its supported APIs and platform permissions are documented and tested.
-- Add encrypted sync only after account, retention, export, and deletion behavior are specified.
-- Add cloud AI only as a separately named, explicitly consented provider option. Do not place provider credentials in the browser or mobile bundle.
-- Add international currencies and region-specific seller fee fixtures, clearly labelling the source.
+## Before submission
 
-## Competition handoff draft
+1. Install Shopee and Lazada from Google Play on the emulator. Credentials stay in the emulator.
+2. Prove one retailer end to end: opt-in, normal launch, observed price, cancel mark, observed delivery/fee breakdown, native interaction, pause/removal. Record app version, region, screens and limits. Test the second retailer before claiming support. Until then: unverified.
+3. Validate delivery, taxes, mandatory fees, quantities, variants and conditional discounts against the original app.
+4. Test real-app scrolling, navigation, popups, rotation, rapid taps, permission revocation, service restart and pause/resume. Keep login and payment screens unannotated.
+5. Finish visual and accessibility review, including large text.
+6. Final APK: clean install test, publish with hash and limits. Fresh build hash differs from the README hash; decide which APK to publish and state its hash.
+7. Resolve open items in the secrets audit (git author metadata, developer paths in logs, unviewed design images 02 and 03, untracked media files).
+8. Record and host a video of three minutes or less. Replace the outdated demo video. Verify the link signed out.
+9. Complete Devpost, credits and AI disclosure. Verify public links signed out and confirm submitted status.
 
-A compact demo can show the S26 Ultra control center, choose a reading preset, enter the 12-item fixture shop, compare a fixture price, open the reconstructed panel, select a product action, and verify the original cart count. It should finish with the source activity entry and the privacy/capability page. Keep the recording under 180 seconds. State clearly that retailer-native support, live retailer feeds, and iOS Safari behavior have not been verified. This is a draft storyboard only; nothing has been submitted externally.
+## Not planned for this submission
+
+Ad removal, tracking blocking, notification filtering and alerts are unavailable. Browser and iOS modules stay experimental.
+
+## Later (unscheduled)
+
+- Add a retailer only after end-to-end proof and documented limits.
+- Encrypted sync only after account, retention, export and deletion are specified.
+- Cloud AI only as a separate, explicitly consented option; no provider keys in distributed apps.
+
+## Video storyboard
+
+Text storyboard: [demo/narration.md](demo/narration.md). Nothing is submitted externally yet.
