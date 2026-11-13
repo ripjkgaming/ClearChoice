@@ -24,6 +24,11 @@ public final class PriceEvidenceParserTest {
  check(parse("Total SGD 13.00 not including delivery and all mandatory fees")==null,"Negated inclusion claim rejected");
  check(parse("Total SGD 13.00 excluding delivery and all mandatory fees","Subtotal SGD 10.00")==null,"Excluding claim rejected");
  check(parse("Total savings SGD 5.00 including delivery and all mandatory fees")==null,"Non-payable total label rejected");
+ check(parse("Total SGD 13.00","Member prices are shown including delivery and all mandatory fees")==null,"Inclusive banner elsewhere cannot certify total");
+ check(parse("Subtotal SGD 10.00","Delivery SGD 3.00","Taxes and all mandatory fees included","Service charge 5 €")==null,"Euro suffix amount rejected");
+ check(parse("Subtotal SGD 10.00","Delivery SGD 3.00","Taxes and all mandatory fees included","Service charge 5 S$")==null,"S$ suffix amount rejected");
+ r=parse("Subtotal SGD 10.00","Delivery SGD 3.00","Service fee SGD 1.00","Service fee: SGD 1.00");check(r==null,"Same fee with different punctuation rejected as duplicate");
+ check(parse("Subtotal SGD 50.00","Total SGD 10.00 including delivery and all mandatory fees")==null,"Inclusive total below subtotal rejected");
  check(parse("Total SGD 13.00 incl. GST")==null,"Total with extra qualifier rejected");
  check(parse("Item price: Perform 10")==null,"Currency code inside word not a currency");
  check(parse("Subtotal 10,50 EUR")==null,"Decimal-comma amount rejected");
