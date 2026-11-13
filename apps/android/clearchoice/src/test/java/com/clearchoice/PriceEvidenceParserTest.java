@@ -19,5 +19,17 @@ public final class PriceEvidenceParserTest {
  check(parse("Total SGD 13.00 including delivery and all mandatory fees","Delivery calculated at checkout")==null,"Contradicting unknown delivery rejects inclusive total");
  check(parse("Total SGD 13.00 including delivery and all mandatory fees","Delivery: Free over SGD 50.00")==null,"Conditional delivery rejects inclusive total");
  check(parse("Total SGD 13.00 including delivery and all mandatory fees","Service fee calculated at checkout")==null,"Unknown fee rejects inclusive total");
+ check(parse("Subtotal SGD 10.00","Delivery SGD 3.00","Taxes and all mandatory fees included","Discount -SGD 2.00")==null,"Negative discount amount rejected");
+ check(parse("Subtotal SGD 10.00","Voucher SGD 2.00 with code SAVE")==null,"Conditional discount amount rejected");
+ check(parse("Total SGD 13.00 not including delivery and all mandatory fees")==null,"Negated inclusion claim rejected");
+ check(parse("Total SGD 13.00 excluding delivery and all mandatory fees","Subtotal SGD 10.00")==null,"Excluding claim rejected");
+ check(parse("Total savings SGD 5.00 including delivery and all mandatory fees")==null,"Non-payable total label rejected");
+ check(parse("Total SGD 13.00 incl. GST")==null,"Total with extra qualifier rejected");
+ check(parse("Item price: Perform 10")==null,"Currency code inside word not a currency");
+ check(parse("Subtotal 10,50 EUR")==null,"Decimal-comma amount rejected");
+ check(parse("Subtotal $10.00")==null,"Bare dollar sign ambiguous currency rejected");
+ check(parse("Subtotal SGD 10.00 (about USD 7.40)")==null,"Dual-currency line rejected");
+ check(parse("Item price SGD 10.00","x2","Delivery SGD 3.00")==null,"x-quantity blocks unit price");
+ r=parse("Subtotal SGD 10.00","x2","Delivery SGD 3.00","Taxes and all mandatory fees included");check(r!=null&&r.complete,"Subtotal with quantity stays valid");
  System.out.println(passed+" price evidence tests passed");}
 }
