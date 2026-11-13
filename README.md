@@ -4,7 +4,7 @@ ClearChoice adds price clarity over existing Android shopping apps. The original
 
 The native control center manages app opt-ins, preferences, features, activity, permissions and pause controls. There is no consumer Demo Shop or Shopping Mode. Store fixtures and older reconstruction experiments in this repository are internal QA and historical work.
 
-## Current status — 11 November 2026
+## Current status — 13 November 2026
 
 - Native control pages build, install and run, using the supplied navy/light designs.
 - Bounded accessibility annotations preserve the source app. Price-mark touches pass through; the breakdown label is dismissible.
@@ -12,6 +12,7 @@ The native control center manages app opt-ins, preferences, features, activity, 
 - The desktop view streams the actual emulator through scrcpy/H264 with input forwarding.
 - **Shopee and Lazada are not installed on the current emulator. Their compatibility and delivery-inclusive totals remain unverified end to end.**
 - Ad removal, tracking blocking, notification filtering and price/stock alerts are unavailable. Browser/iOS modules are experimental.
+- Docs now describe the original-app annotation approach. [Credits/AI disclosure](docs/credits-and-disclosure.md) and a [secrets/personal-data audit](docs/qa/secrets-audit.md) exist; the audit lists open items (git author metadata, developer paths in old logs). A [fresh-clone build check](docs/qa/fresh-clone-build.md) passed `npm ci`, `npm test`, `npm run build`, parser tests and Gradle `assembleDebug` (parser tests and Gradle need a JDK, not just a JRE).
 - Launcher styling is unfinished. The emulator does not run Samsung One UI firmware.
 
 See [latest verification](docs/qa/user-design-price-annotation.md), [raw Android results](docs/qa/price-annotation-instrumentation.log), [screenshots](docs/qa/ui-v2/) and [user design references](docs/design/user-approved/).
@@ -28,11 +29,11 @@ See [latest verification](docs/qa/user-design-price-annotation.md), [raw Android
 
 ### Release and submission
 
-- [ ] Build a reproducible final APK; test a clean install and onboarding/permissions. Publish it with a hash and supported-device/app limits. Keep internal QA out of normal user flows. Verify a fresh clone builds.
-- [ ] Update older status/architecture docs, feature matrix, screenshots, submission draft and storyboard to the current original-app annotation approach. Separate fixtures and unfinished platforms from demonstrated capabilities. Replace the existing outdated demo video.
+- [ ] Final APK: a fresh clone builds (done, see report). APK contents are reproducible; the signature is not (see below). Still open: clean install and onboarding/permissions test on a device, supported-device/app limits, a final hash published with the release, and keeping internal QA out of normal user flows.
+- [ ] Status/architecture/feature-matrix docs were rewritten for the original-app approach (commit 8c056de). Still open: confirm screenshots, submission draft and storyboard match, and replace the existing outdated demo video.
 - [ ] Record and publicly host a working video of **three minutes or less**: problem, control center, real retailer annotation, observed fee breakdown, native interaction, pause and tested limits. Verify its link while signed out.
 - [ ] Complete Devpost: what it does, implementation, challenges, learning, impact and next steps; include repository/video links, technologies, team and applicable tracks.
-- [ ] Credit third-party code/assets and disclose significant AI-generated contributions and tools. Verify asset rights, build-period eligibility, team registration and any required guardian permission. Audit public files for secrets and personal data.
+- [ ] Credits/AI disclosure and secrets audit are written. Still open: team confirms the items marked unknown, asset rights, build-period eligibility, team registration and any guardian permission; act on the audit findings (git author metadata, developer paths in old logs, two unviewed design screenshots).
 - [ ] Verify every public link as a signed-out judge, submit on Devpost, and confirm submitted status before the deadline.
 
 **Deadline: Monday, 16 November 2026, 10:00 AM Singapore time** (15 November, 6:00 PM PST), checked against the [official schedule](https://icehacks.devpost.com/details/dates) on 11 November. The [main submission page](https://icehacks.devpost.com/) requires a public video of at most three minutes; the [rules page](https://icehacks.devpost.com/rules) requires a public GitHub repository and differs on video wording. Prepare both to satisfy both pages.
@@ -60,6 +61,8 @@ cd apps/android
 
 Output: `~/.gradle/clearchoice-build/clearchoice/outputs/apk/debug/clearchoice-debug.apk`.
 The [current debug APK](apps/android/ClearChoice-debug.apk) SHA-256 is `59cac52aa568655db98fc3d03fa504890451135baa9414246a4f38a3eb443b37`.
+
+A fresh build produces a different file hash (`21082609b1b59cf6ddc39a9daa781cff5586ac704cdb9648daf15c0b5a89a693` on one machine). Checked on 13 November: the committed APK and a fresh build have byte-identical `classes.dex`, `classes2.dex`, `resources.arsc`, `AndroidManifest.xml` and `res/xml/*` (compared by extraction and `diff`). They differ in the debug signing certificate (`apksigner` reports different SHA-256 digests for the "Android Debug" signer) and in zip entry order/compression. Gradle debug builds sign with the local `~/.android/debug.keystore`, which differs per machine. Two consecutive clean builds on one machine gave identical hashes. So the file hash is only reproducible with the same debug key; compare extracted contents across machines. The committed APK was kept unchanged: it is debug-signed, and replacing it would not make it more reproducible. The comparison build used the local working tree on 13 November, which had uncommitted parser edits from another change; the identical contents suggest those edits do not change the APK, but this was not separately checked.
 
 Run parser checks from the repository root:
 
