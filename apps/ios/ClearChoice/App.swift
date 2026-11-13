@@ -37,18 +37,74 @@ struct ContentView: View {
     private var home: some View { ScrollView { VStack(alignment: .leading, spacing: 18) {
         HStack { Image(systemName: "checkmark.seal.fill").font(.system(size: 32)).foregroundStyle(purple); Text("ClearChoice").font(.title2.bold()); Spacer(); Image(systemName: "bell") }.padding(.top, 8)
         VStack(alignment: .leading, spacing: 12) { Text("SHOPPING, MADE CLEARER").font(.caption2.bold()).tracking(2).foregroundStyle(purple); Text("Enhance your **shopping** apps.").font(.system(size: 29, weight: .bold, design: .rounded)); Text("A smarter, calmer experience — on your apps, on your terms.").foregroundStyle(.white.opacity(0.72)); Button { model.launchDemo(); showDemo = true } label: { Label("Launch Shopping Mode", systemImage: "play.fill").frame(maxWidth: .infinity).padding(14) }.buttonStyle(GlowButton()) }.padding(20).background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24)).overlay(RoundedRectangle(cornerRadius: 24).stroke(.white.opacity(0.13)))
-        HStack { Text("Connected apps").font(.headline); Spacer(); Button("Manage ›") { tab = 1 }.foregroundStyle(purple) }
+        HStack { Text("Connected apps").font(.headline); Spacer(); Button("Manage ›") { tab = 1 }.glassButton() }
         HStack(spacing: 9) { ForEach([("Shopee", "bag.fill"), ("Lazada", "shippingbox.fill"), ("TikTok", "music.note"), ("Amazon", "a.circle.fill")], id: \.0) { app in VStack(spacing: 7) { Image(systemName: app.1).font(.title2).frame(height: 28).foregroundStyle(purple); Text(app.0).font(.caption2); Text("Unverified").font(.system(size: 8)).foregroundStyle(.secondary) }.frame(maxWidth: .infinity).padding(.vertical, 12).background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 15)) } }
-        VStack(alignment: .leading, spacing: 8) { HStack { Text("Active session").font(.headline); Spacer(); Text(model.paused ? "PAUSED" : "READY").font(.caption2.bold()).foregroundStyle(.green) }; HStack { Image(systemName: "checkmark.seal.fill").foregroundStyle(purple).font(.title2); VStack(alignment: .leading) { Text("ClearChoice Demo").bold(); Text("\(model.mode) · demo integration").font(.caption).foregroundStyle(.secondary) }; Spacer(); Button(model.paused ? "Resume" : "Pause") { model.togglePause() }.buttonStyle(.bordered) } }.padding(16).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 18))
+        VStack(alignment: .leading, spacing: 8) { HStack { Text("Active session").font(.headline); Spacer(); Text(model.paused ? "PAUSED" : "READY").font(.caption2.bold()).foregroundStyle(.green) }; HStack { Image(systemName: "checkmark.seal.fill").foregroundStyle(purple).font(.title2); VStack(alignment: .leading) { Text("ClearChoice Demo").bold(); Text("\(model.mode) · demo integration").font(.caption).foregroundStyle(.secondary) }; Spacer(); Button(model.paused ? "Resume" : "Pause") { model.togglePause() }.glassButton() } }.padding(16).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 18))
         Text("Retailer connections require a verified integration. ClearChoice Demo is the supported environment here.").font(.caption).foregroundStyle(.secondary)
     }.padding(18) }.sheet(isPresented: $showDemo) { DemoShopView() } }
     private var apps: some View { List { Section("Shopping mode") { ForEach(["UI Overlay", "Smart Shopping", "Data Assist", "AI Buying Assistant"], id: \.self) { m in Button { model.setMode(m) } label: { HStack { Image(systemName: m == model.mode ? "largecircle.fill.circle" : "circle").foregroundStyle(purple); VStack(alignment: .leading) { Text(m).foregroundStyle(.primary); Text(describe(m)).font(.caption).foregroundStyle(.secondary) }; Spacer() } } } }; Section("App preferences") { ForEach(Array(model.apps.keys.sorted()), id: \.self) { name in HStack { Toggle(name, isOn: Binding(get: { model.apps[name] ?? false }, set: { model.apps[name] = $0 })); Text(name == "ClearChoice Demo" ? "Supported" : "Preference only · unverified").font(.caption2).foregroundStyle(name == "ClearChoice Demo" ? .green : .secondary) }.padding(.vertical, 3) } }; Section("Experience Studio") { NavigationLink("Open Experience Studio") { StudioView(preset: $model.preset) }; Text("Safari access remains controlled per website in iOS Settings.").font(.caption).foregroundStyle(.secondary) } }.scrollContentBackground(.hidden).navigationTitle("Features") }
     private var activity: some View { NavigationStack { List { Section("On this device") { ForEach(model.activity, id: \.self) { Text($0).font(.subheadline) } }; Section("Privacy") { Text(model.privacy).font(.caption).foregroundStyle(.secondary) } }.scrollContentBackground(.hidden).navigationTitle("Activity") } }
-    private var settings: some View { NavigationStack { Form { Section("Safari") { Text("Safari web extension"); Text("Enable ClearChoice in Settings → Apps → Safari → Extensions. iOS controls access per website.").font(.caption).foregroundStyle(.secondary) }; Section("Privacy") { Label("No account required", systemImage: "person.crop.circle"); Label("Sensitive fields excluded", systemImage: "hand.raised"); Text("Preferences are stored on this device. The extension does not grant or claim access to other apps.").font(.caption).foregroundStyle(.secondary) }; Section("Controls") { Toggle("Pause ClearChoice", isOn: Binding(get: { model.paused }, set: { _ in model.togglePause() })); Button("Reset local preferences", role: .destructive) { model.setMode("UI Overlay"); model.preset = "Balanced" } } }.scrollContentBackground(.hidden).navigationTitle("Settings") } }
+    private var settings: some View { NavigationStack { Form { Section("Safari") { Text("Safari web extension"); Text("Enable ClearChoice in Settings → Apps → Safari → Extensions. iOS controls access per website.").font(.caption).foregroundStyle(.secondary) }; Section("Privacy") { Label("No account required", systemImage: "person.crop.circle"); Label("Sensitive fields excluded", systemImage: "hand.raised"); Text("Preferences are stored on this device. The extension does not grant or claim access to other apps.").font(.caption).foregroundStyle(.secondary) }; Section("Controls") { Toggle("Pause ClearChoice", isOn: Binding(get: { model.paused }, set: { _ in model.togglePause() })); Button("Reset local preferences", role: .destructive) { model.setMode("UI Overlay"); model.preset = "Balanced" }.glassButton() } }.scrollContentBackground(.hidden).navigationTitle("Settings") } }
     private func describe(_ mode: String) -> String { ["UI Overlay":"A presentation layer for supported Safari pages.", "Smart Shopping":"Fixture savings in the demo store.", "Data Assist":"Clearly labeled sample data.", "AI Buying Assistant":"Requires a configured secure gateway."][mode] ?? "" }
 }
 
-struct GlowButton: ButtonStyle { func makeBody(configuration: Configuration) -> some View { configuration.label.font(.headline).foregroundStyle(.white).background(LinearGradient(colors: [Color.purple, Color.pink.opacity(0.8)], startPoint: .leading, endPoint: .trailing), in: RoundedRectangle(cornerRadius: 15)).shadow(color: .purple.opacity(configuration.isPressed ? 0.15 : 0.4), radius: 14) } }
+// MARK: - Liquid Glass buttons
+// iOS 26+: system Liquid Glass (.glass / .glassProminent / .glassEffect(.regular.tint(...).interactive())).
+// iOS 17-25: the previous bordered / gradient look. `#if compiler(>=6.2)` keeps the file building with
+// pre-iOS 26 SDKs (Xcode 16 and older), where the glass symbols do not exist at all.
+// UNVERIFIED: written without Xcode; not compiled or rendered.
+
+extension Color {
+    /// Button tint shared with Android (#8247E6 violet, #AD3A96 pink). White text: 5.26:1 / 5.49:1 on the opaque colours.
+    /// System .purple (#BF5AF2 in dark mode) only reaches 3.52:1 with white, so it is not used behind button labels.
+    static let ccViolet = Color(red: 0x82 / 255, green: 0x47 / 255, blue: 0xE6 / 255)
+    static let ccPink = Color(red: 0xAD / 255, green: 0x3A / 255, blue: 0x96 / 255)
+}
+
+/// Hero call to action: purple-tinted interactive glass in a 15pt rounded rect on iOS 26+, gradient fallback below.
+struct GlowButton: ButtonStyle {
+    @ViewBuilder func makeBody(configuration: Configuration) -> some View {
+        let label = configuration.label.font(.headline).foregroundStyle(.white)
+        #if compiler(>=6.2)
+        if #available(iOS 26, *) {
+            label.glassEffect(.regular.tint(Color.ccViolet.opacity(0.85)).interactive(), in: .rect(cornerRadius: 15))
+        } else {
+            label.background(LinearGradient(colors: [Color.ccViolet, Color.ccPink], startPoint: .leading, endPoint: .trailing), in: RoundedRectangle(cornerRadius: 15)).shadow(color: Color.ccViolet.opacity(configuration.isPressed ? 0.15 : 0.4), radius: 14)
+        }
+        #else
+        label.background(LinearGradient(colors: [Color.ccViolet, Color.ccPink], startPoint: .leading, endPoint: .trailing), in: RoundedRectangle(cornerRadius: 15)).shadow(color: Color.ccViolet.opacity(configuration.isPressed ? 0.15 : 0.4), radius: 14)
+        #endif
+    }
+}
+
+extension View {
+    /// Every standalone button goes through this. Prominent = tinted glass (primary action); regular = plain glass.
+    @ViewBuilder func glassButton(prominent: Bool = false, tint: Color = .ccViolet) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26, *) {
+            if prominent { self.buttonStyle(.glassProminent).tint(tint) } else { self.buttonStyle(.glass) }
+        } else {
+            if prominent { self.buttonStyle(.borderedProminent).tint(tint) } else { self.buttonStyle(.bordered) }
+        }
+        #else
+        if prominent { self.buttonStyle(.borderedProminent).tint(tint) } else { self.buttonStyle(.bordered) }
+        #endif
+    }
+}
+
+/// Groups sibling glass buttons in a GlassEffectContainer on iOS 26+ (shared rendering and morphing); plain passthrough below.
+struct GlassGroup<Content: View>: View {
+    private let spacing: CGFloat
+    private let content: Content
+    init(spacing: CGFloat = 8, @ViewBuilder content: () -> Content) { self.spacing = spacing; self.content = content() }
+    @ViewBuilder var body: some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26, *) { GlassEffectContainer(spacing: spacing) { content } } else { content }
+        #else
+        content
+        #endif
+    }
+}
 
 
 struct StudioView: View {
@@ -68,9 +124,9 @@ struct StudioView: View {
         Section("Presets") { Picker("Preset", selection: $preset) { ForEach(["Balanced", "Minimal", "Accessible", "Custom"], id: \.self, content: Text.init) }.pickerStyle(.segmented) }
         Section("Scope") { Picker("Apply to", selection: $scope) { ForEach(["Global", "ClearChoice Demo", "Product page", "Cart"], id: \.self, content: Text.init) } }
         Section("Adjustments") { slider("Simplification", $simplification); slider("Accessibility", $accessibility); slider("Spacing", $spacing); slider("Font size", $font); slider("Content density", $density); slider("Color contrast", $contrast); slider("Corner shape", $shape); slider("Primary actions", $ctaLimit, range: 1...4) }
-        Section("Describe a change") { TextField("e.g. Larger text and more spacing", text: $prompt); Button("Apply prompt") { parse() } }
-        Section("Preview · \(scope)") { VStack(alignment: .leading, spacing: spacing / 10) { Text("CLEARCHOICE DEMO · PRODUCT").font(.caption).tracking(1); Text("Noise-cancelling headphones").font(.system(size: 17 + font / 13, weight: .bold)); Text("Clear product details and a simple path forward.").font(.system(size: 12 + accessibility / 16)); Text("$129.00").bold(); Button("Add to cart") {}.buttonStyle(.borderedProminent).tint(.purple) }.padding(12).frame(maxWidth: .infinity, alignment: .leading).background(contrast > 75 ? Color.white : Color.purple.opacity(0.12), in: RoundedRectangle(cornerRadius: 10 + shape / 5)).foregroundStyle(contrast > 75 ? .black : .primary).lineSpacing(density > 70 ? 5 : 1) }
-        Section { Button(saved ? "Profile saved on this device ✓" : "Save profile") { saved = true } }
+        Section("Describe a change") { TextField("e.g. Larger text and more spacing", text: $prompt); Button("Apply prompt") { parse() }.glassButton() }
+        Section("Preview · \(scope)") { VStack(alignment: .leading, spacing: spacing / 10) { Text("CLEARCHOICE DEMO · PRODUCT").font(.caption).tracking(1); Text("Noise-cancelling headphones").font(.system(size: 17 + font / 13, weight: .bold)); Text("Clear product details and a simple path forward.").font(.system(size: 12 + accessibility / 16)); Text("$129.00").bold(); Button("Add to cart") {}.glassButton(prominent: true) }.padding(12).frame(maxWidth: .infinity, alignment: .leading).background(contrast > 75 ? Color.white : Color.purple.opacity(0.12), in: RoundedRectangle(cornerRadius: 10 + shape / 5)).foregroundStyle(contrast > 75 ? .black : .primary).lineSpacing(density > 70 ? 5 : 1) }
+        Section { Button(saved ? "Profile saved on this device ✓" : "Save profile") { saved = true }.glassButton(prominent: true) }
     }.scrollContentBackground(.hidden).navigationTitle("Experience Studio") }
     private func slider(_ name: String, _ value: Binding<Double>, range: ClosedRange<Double> = 0...100) -> some View { VStack(alignment: .leading) { HStack { Text(name); Spacer(); Text(range == 1...4 ? "\(Int(value.wrappedValue))" : "\(Int(value.wrappedValue))%").foregroundStyle(.secondary) }; Slider(value: value, in: range).tint(.purple) } }
     private func parse() { let q = prompt.lowercased(); if q.contains("large") { font = 85 }; if q.contains("access") || q.contains("contrast") { accessibility = 90; contrast = 90 }; if q.contains("less") || q.contains("clutter") { density = 20 }; if q.contains("spacing") { spacing = 80 }; preset = "Custom" }
@@ -96,8 +152,12 @@ struct DemoShopView: View {
                                 Text("$\(item.deal).00").foregroundStyle(.green).bold()
                             }
                             Spacer()
-                            Button("View") { selected = item }.buttonStyle(.bordered)
-                            Button("Add") { cart[item.id, default: 0] += 1 }.buttonStyle(.borderedProminent).tint(.purple)
+                            GlassGroup(spacing: 8) {
+                                HStack(spacing: 8) {
+                                    Button("View") { selected = item }.glassButton()
+                                    Button("Add") { cart[item.id, default: 0] += 1 }.glassButton(prominent: true)
+                                }
+                            }
                         }.padding(12).background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 17))
                     }
                 }.padding()
@@ -115,7 +175,7 @@ struct DemoShopView: View {
                         Text(p.name).font(.title.bold())
                         Text("Illustrative demo history · $\(p.price) → $\(p.deal)")
                         Picker("Variant", selection: .constant(p.variants[0])) { ForEach(p.variants, id: \.self, content: Text.init) }
-                        Button("Add to cart · $\(p.deal)") { cart[p.id, default: 0] += 1 }.buttonStyle(.borderedProminent).tint(.purple)
+                        Button("Add to cart · $\(p.deal)") { cart[p.id, default: 0] += 1 }.glassButton(prominent: true)
                         Spacer()
                     }.padding().navigationTitle("Product").navigationBarTitleDisplayMode(.inline)
                 }

@@ -6,5 +6,19 @@
         <item name="android:colorBackground">#FF1F192D</item>
         <item name="android:textColorPrimary">#FFF5F2FA</item>
         <item name="android:textColorSecondary">#FFACA6BB</item>
+        <item name="android:buttonBarButtonStyle">@style/ClearChoiceDialog.GlassButton</item>
+        <item name="android:buttonBarPositiveButtonStyle">@style/ClearChoiceDialog.GlassButton</item>
+        <item name="android:buttonBarNegativeButtonStyle">@style/ClearChoiceDialog.GlassButton</item>
+        <item name="android:buttonBarNeutralButtonStyle">@style/ClearChoiceDialog.GlassButton</item>
+    </style>
+    <!-- Regular liquid glass dialog button. Lilac label on the glass fill: 5.17:1. 48dp minimum target. -->
+    <style name="ClearChoiceDialog.GlassButton" parent="android:Widget.Material.Button.Borderless.Colored">
+        <item name="android:background">@drawable/glass_dialog_button</item>
+        <item name="android:textColor">#FFC9A0FF</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:minWidth">64dp</item>
+        <item name="android:paddingStart">18dp</item>
+        <item name="android:paddingEnd">18dp</item>
+        <item name="android:stateListAnimator">@null</item>
     </style>
 </resources>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Regular liquid glass for dialog buttons. XML cannot stroke with a gradient, so the rim is a
+    top-lit gradient shape (white 70% to 40%) with the fill inset 1dp on top of it. The fill is
+    pre-composited against the dialog background #1F192D: violet #8B5CF6 at 18% gives #322551,
+    and the soft inner highlight (white 8%) lifts the top to #42365F. No blur is involved.
+    Lilac #C9A0FF label: 5.17:1 at the brightest point; rim vs dialog background >= 3.78:1.
+-->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="#1FC9A0FF">
+    <item>
+        <inset android:insetLeft="4dp" android:insetRight="4dp" android:insetTop="6dp" android:insetBottom="6dp">
+            <layer-list>
+                <item>
+                    <shape android:shape="rectangle">
+                        <corners android:radius="14dp" />
+                        <gradient android:angle="270" android:startColor="#B3FFFFFF" android:endColor="#66FFFFFF" />
+                    </shape>
+                </item>
+                <item android:left="1dp" android:top="1dp" android:right="1dp" android:bottom="1dp">
+                    <shape android:shape="rectangle">
+                        <corners android:radius="13dp" />
+                        <gradient android:angle="270" android:type="linear" android:centerY="0.55"
+                            android:startColor="#FF42365F" android:centerColor="#FF322551" android:endColor="#FF322551" />
+                    </shape>
+                </item>
+            </layer-list>
+        </inset>
+    </item>
+</ripple>
