@@ -103,3 +103,81 @@ service banner subtitle 7.78, inactive nav 8.66, active nav (after the fix)
 - Verification run: `./gradlew :clearchoice:assembleDebug` passed
   (JAVA_HOME=~/.local/jdk21). `run-price-evidence-tests.sh` reported
   "29 price evidence tests passed". Those tests do not cover the UI.
+
+## Fable review
+
+Date: 13 November 2026. Second pass over commit `aa520e1`, against the same
+five approved references.
+
+### Important limit
+
+**No emulator or device was available** (`adb devices` listed nothing). Nothing
+below was rendered, screenshot-tested or checked with TalkBack. Widths quoted
+are estimates from Roboto glyph metrics on a 360dp-wide phone, not
+measurements. The screenshots in `docs/qa/ui-v2/` are still from before both
+review passes. The committed `apps/android/ClearChoice-debug.apk` was not
+rebuilt, so it does not contain these changes.
+
+### Decision: bottom-nav labels at 2x font
+
+**Cap the scaling, and wrap at spaces only.** Each of the five tabs has about
+64dp for its label on a 360dp phone. "Permissions" at 10sp is already about
+55dp wide, so at 2.0x (about 110dp) it cannot fit and Android would split it
+mid-word. Letting labels grow freely is therefore not an option.
+
+- Nav labels follow the system font size up to 13dp (1.3x), then stop.
+- If the longest word still does not fit the tab, all five labels shrink
+  together until it does. Labels never break inside a word.
+- "Manage Apps" may wrap at the space. When any label needs two lines, every
+  label reserves two lines so the icons stay on one row.
+- Each tab has a long-press/hover tooltip with its name (`setTooltipText`),
+  and TalkBack still reads the full label.
+
+Trade-off, stated plainly: nav labels do not reach 200% text size, so this
+bar alone does not meet WCAG 1.4.4. All page content still scales fully. This
+is the same compromise platform bottom bars make.
+
+### Fixed (all in `MainActivity.java`)
+
+| Area | Problem | Change |
+|---|---|---|
+| Large text | The "ClearChoice" wordmark (25sp), hero page titles (27sp, "Permissions & privacy"), hero tabs, the counts strip and the Activity summary tiles would split words at 1.5x–2.0x. | New `fit(width, labels...)` helper shrinks a group of labels together until the longest word fits. It does nothing at normal sizes. |
+| Large text | Manage Apps rows keep icon, name, Manage pill and switch on one line. At 2.0x the name had about 80dp left. | At font scale 1.3 and above the pill and switch move to a second line, right-aligned, inside the same card. |
+| Large text | Rows with a status chip ("Unavailable") left about 124dp for a 30sp title at 2.0x. | At 1.3 and above the chip sits under the description instead of beside it. |
+| Large text | The service banner squeezed its text beside the Pause pill. | At 1.3 and above the pill sits under the text, full width. |
+| Large text | Activity filter pills overflowed the row at 2.0x. | At 1.3 and above they stack. |
+| Large text | The `⋮` and `›` glyphs doubled in size at 2.0x. | They are icons, so they now have a fixed 25dp size. The touch targets are unchanged. |
+| Hierarchy | Counts strip and Activity tiles used one bold weight for number and label. The references show a strong number and a quiet label. | Number is bold and 1.4x; label is regular and muted (`#535b70` on white, 6.78:1; `#c7d2ed` on `#293653`, about 8:1). The service tile's status text stays at label size. |
+| Hierarchy | The active hero tab was marked by colour and weight only. The reference has an underline. | Added a 3dp underline (`#8f8cff`) on the active tab. |
+| Hierarchy | Every Activity record was its own card. The reference groups records under each date. | One card per day, with dividers between records. |
+| Spacing | The last Activity summary tile had a trailing 5dp margin, so the row did not align with the right edge; tile heights could differ. | Margin only between tiles (6dp); tiles share the row height. |
+| Spacing | Toggle-row text could touch the switch. | Added an 8dp gap. |
+| Accessibility | Toggle rows had two focus stops: the text, then the switch (open point 4 of the first review). | The text is hidden from accessibility and the switch description is "title. detail". One stop, with the on/off and disabled state announced by the switch. |
+
+### Not changed
+
+- No strings, click handlers or preference keys changed. `Design.java`, the
+  overlay service, parser, build files and README are untouched.
+- The Manage Apps filter row ("All apps" / "Add app") can wrap "Add app" onto
+  two lines inside its pill at 2.0x. It wraps at the space, so it was left.
+- "Clear local history" is still shown when the list is empty.
+- `fit()` uses the full display width. In landscape with side system bars it
+  overestimates by the inset; landscape has more room, so this is low risk.
+- Launcher styling is still paused.
+
+### Still needs a device
+
+1. Everything in "Could not verify" from the first review, except point 2
+   (decided above) and the toggle-row part of point 4 (changed above, but the
+   announcement itself is unheard).
+2. The stacked layouts at 1.3x, 1.5x and 2.0x, and that the 1.3 threshold is
+   the right place to switch.
+3. That the hero-tab underline sits on the bottom edge of the tab and that the
+   two-weight counts and tiles look right.
+4. Nav labels at 1.3x on a narrow (320dp) screen.
+
+### Verification run
+
+`./gradlew :clearchoice:assembleDebug` passed (JAVA_HOME=~/.local/jdk21,
+ANDROID_HOME=~/android-sdk). That proves the code compiles and packages; it
+does not prove the layout. No UI tests exist, and none were added.
