@@ -1,1 +1,1 @@
-<resources><string name="app_name">ClearChoice</string><string name="service_desc">User-controlled background review for verified, allowed apps. Unverified apps retain their original screens.</string></resources>
+<resources><string name="app_name">ClearChoice</string><string name="service_desc">User-controlled, on-device background review. Only apps you explicitly allow (such as Shopee or Lazada) are read, and their support is not yet verified. Other apps are not touched.</string></resources>
