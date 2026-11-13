@@ -7,6 +7,7 @@ export const RULES = Object.freeze([
   ['ambiguous-terms', 'Ambiguous terms']
 ].map(([id, label]) => Object.freeze({ id, label })));
 
+const SENSITIVE_PLACEHOLDER = '[sensitive content omitted]';
 const RULE_IDS = new Set(RULES.map(r => r.id));
 const SENSITIVE = /\b(password|passcode|one[- ]time code|\botp\b|credit card|card number|cvv|cvc|security code|bank account|routing number|ssn|social security|payment details?)\b/i;
 const TEXT_ONLY = new Set(['text', 'heading', 'label', 'paragraph', 'link', 'button', 'input', 'select', 'checkbox', 'radio']);
@@ -33,8 +34,8 @@ export function normalizePerception(input) {
     if (typeof e.currency === 'string') item.currency = e.currency.slice(0,8);
     if (typeof e.productId === 'string') item.productId = e.productId.slice(0,160);
     // Never serialize entered values. A value field is intentionally ignored.
-    if (SENSITIVE.test(item.text)) item.text = '[sensitive content omitted]';
-    if (item.label && SENSITIVE.test(item.label)) item.label = '[sensitive content omitted]';
+    if (SENSITIVE.test(item.text)) item.text = SENSITIVE_PLACEHOLDER;
+    if (item.label && SENSITIVE.test(item.label)) item.label = SENSITIVE_PLACEHOLDER;
     return Object.freeze(item);
   });
   const snapshot = { sourceRevision: input.sourceRevision, elements: Object.freeze(elements) };
@@ -106,7 +107,7 @@ export function validateBridgeAction(perception, request, { usedActionIds = new 
   const element = snapshot.elements.find(e => e.id === request.sourceId);
   if (!element) throw new Error('unknown sourceId');
   if (!element.visible || !element.enabled || !element.clickable) throw new Error('source is not actionable');
-  if (element.type === 'input' || element.type === 'select' || element.type === 'checkbox' || element.type === 'radio' || isSensitiveText(element.text)) throw new Error('sensitive or form controls stay in the original UI');
+  if (element.type === 'input' || element.type === 'select' || element.type === 'checkbox' || element.type === 'radio' || isSensitiveText(element.text) || element.text === SENSITIVE_PLACEHOLDER || element.label === SENSITIVE_PLACEHOLDER) throw new Error('sensitive or form controls stay in the original UI');
   const action = request.action;
   if (!element.actions.includes(action) || !['click','navigate','scroll'].includes(action)) throw new Error('action is not allowed by the source contract');
   usedActionIds.add(request.actionId);
@@ -211,8 +212,11 @@ export function createReviewAnnotations(perception) {
 }
 
 export function createProfile({ global = {}, apps = {}, screens = {} } = {}) {
-  const merge = (...parts) => Object.freeze(Object.assign({ enabled:true, paused:false, rules:Object.fromEntries(RULES.map(r => [r.id,true])) }, ...parts));
-  return Object.freeze({ global:merge(global), apps:Object.freeze(Object.fromEntries(Object.entries(apps).map(([k,v]) => [k,merge(v)]))), screens:Object.freeze(Object.fromEntries(Object.entries(screens).map(([k,v]) => [k,merge(v)]))) });
+  const defaults = () => ({ enabled:true, paused:false, rules:Object.fromEntries(RULES.map(r => [r.id,true])) });
+  // Global entry carries full defaults; app/screen entries keep only explicit overrides so they cannot mask global settings.
+  const mergeGlobal = part => Object.freeze({ ...defaults(), ...part, rules:Object.freeze({ ...defaults().rules, ...(part?.rules ?? {}) }) });
+  const mergeOverride = part => Object.freeze({ ...(part ?? {}), ...(part?.rules ? { rules:Object.freeze({ ...part.rules }) } : {}) });
+  return Object.freeze({ global:mergeGlobal(global), apps:Object.freeze(Object.fromEntries(Object.entries(apps).map(([k,v]) => [k,mergeOverride(v)]))), screens:Object.freeze(Object.fromEntries(Object.entries(screens).map(([k,v]) => [k,mergeOverride(v)]))) });
 }
 export function resolveProfile(profile, appKey, screenKey) {
   const base = profile?.global ?? createProfile().global;

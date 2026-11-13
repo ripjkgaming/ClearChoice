@@ -1,5 +1,5 @@
 (async () => {
-  if (window.__clearChoiceInstalled) return;
+  if (window.__clearChoiceInstalled) { window.__clearChoiceResume?.(); return; }
   window.__clearChoiceInstalled = true;
   let engine;
   try { engine = await import(chrome.runtime.getURL('src/index.js')); } catch (error) { console.error('ClearChoice engine module unavailable',error); window.__clearChoiceInstalled = false; return; }
@@ -10,7 +10,7 @@
   const originals = new Map();
   const generatedIds = new WeakSet();
   const usedActionIds = new Set();
-  let enabled = true, paused = false, applying = false, dismissed = false, timer;
+  let enabled = true, paused = false, siteOff = false, applying = false, dismissed = false, timer;
   let highlighted = null;
   let shopping = null;
   const actionable = el => /^(A|BUTTON)$/.test(el.tagName) || el.getAttribute('role') === 'button' || el.hasAttribute('onclick');
@@ -20,13 +20,16 @@
     const elements = [];
     const walker = document.createTreeWalker(document.body || document.documentElement, NodeFilter.SHOW_ELEMENT);
     let el;
+    const seenIds = new Set();
     while ((el = walker.nextNode()) && elements.length < 1000) {
       if (!eligible(el)) continue;
       const rect = el.getBoundingClientRect();
       const text = (el.innerText || el.getAttribute('aria-label') || '').trim().replace(/\s+/g,' ').slice(0,500);
       if (!text && !actionable(el)) continue;
       let id = el.getAttribute(ATTR);
+      if (id && seenIds.has(id)) id = null; // cloned node: attribute copied, mint a fresh id
       if (!id) { id = crypto.randomUUID(); el.setAttribute(ATTR,id); generatedIds.add(el); }
+      seenIds.add(id);
       const price = el.hasAttribute('data-cc-price') ? text : undefined;
       const currency = el.getAttribute('data-cc-currency') || undefined;
       elements.push({ id, type:el.matches('[role="banner"],header') ? 'banner' : el.tagName === 'BUTTON' ? 'button' : el.tagName === 'A' ? 'link' : el.matches('h1,h2,h3,h4') ? 'heading' : el.matches('input[type="checkbox"]') ? 'checkbox' : 'text', text, visible:true, enabled:!el.matches(':disabled,[aria-disabled="true"]'), clickable:actionable(el), scrollable:el.scrollHeight > el.clientHeight + 2, bounds:{ x:rect.x, y:rect.y, width:rect.width, height:rect.height }, actions:actionable(el) ? [el.tagName === 'A' ? 'navigate' : 'click'] : [], ...(price ? {price,currency}: {}) });
@@ -61,11 +64,14 @@
   }
   const labels = { 'preselected-extras':'Preselected extra', 'hidden-fees':'Fee may need review', 'unverified-urgency':'Urgency claim (unverified)', confirmshaming:'Pressuring wording', 'unequal-choices':'Choice may be harder to find', 'confusing-navigation':'Navigation may be unclear', clutter:'Visual clutter', 'accessibility-barriers':'Accessibility cue', 'ambiguous-terms':'Ambiguous term' };
   function analyze(snapshot) {
-    const patterns = { 'preselected-extras':/\b(add|include|subscribe|protection|warranty)\b/i, 'hidden-fees':/\b(service|processing|delivery|handling|convenience) fee\b/i, 'unverified-urgency':/\b(only \d+ left|ends in|expires in|last chance|selling fast)\b/i, confirmshaming:/\b(no,? i (?:do not|don't|won't) want|i prefer to pay more|i hate saving|miss out on savings)\b/i, 'unequal-choices':/\b(no thanks|decline|reject)\b/i, 'confusing-navigation':/\b(back|cancel|continue|close)\b/i, clutter:/\b(advertisement|sponsored)\b/i, 'accessibility-barriers':/\b(click here|learn more)\b/i, 'ambiguous-terms':/\b(as applicable|may apply|subject to terms|additional charges)\b/i };
-    return snapshot.elements.flatMap(e => Object.entries(patterns).filter(([,r]) => r.test(e.text)).map(([ruleId]) => ({ sourceId:e.id, ruleId, label:labels[ruleId], text:e.text.slice(0,160) })));
+    const patterns = { 'hidden-fees':/\b(service|processing|delivery|handling|convenience) fee\b/i, 'unverified-urgency':/\b(only \d+ left|ends in|expires in|last chance|selling fast)\b/i, confirmshaming:/\b(no,? i (?:do not|don't|won't) want|i prefer to pay more|i hate saving|miss out on savings)\b/i, 'unequal-choices':/\b(no thanks|decline|reject)\b/i, clutter:/\b(advertisement|sponsored)\b/i, 'accessibility-barriers':/\b(click here|learn more)\b/i, 'ambiguous-terms':/\b(as applicable|may apply|subject to terms|additional charges)\b/i };
+    const all = snapshot.elements.flatMap(e => Object.entries(patterns).filter(([,r]) => r.test(e.text)).map(([ruleId]) => ({ sourceId:e.id, ruleId, label:labels[ruleId], text:e.text.slice(0,160) })));
+    // Ancestors repeat descendant text; keep only the innermost element per rule.
+    const nodeOf = new Map(all.map(f => [f.sourceId,getTarget(f.sourceId)]));
+    return all.filter(f => { const n = nodeOf.get(f.sourceId); return !n || !all.some(o => o !== f && o.ruleId === f.ruleId && nodeOf.get(o.sourceId) !== n && n.contains(nodeOf.get(o.sourceId))); });
   }
   function scan() {
-    if (!enabled || paused || applying || !document.body || protectedScreen()) { restore(); return; }
+    if (siteOff || !enabled || paused || applying || !document.body || protectedScreen()) { restore(); return; }
     if (dismissed) return;
     const findings = analyze(collect()); render(findings);
     if ((!shopping || shopping.available===false) && document.querySelector('[data-cc-product]')) shopping=mountShoppingAdapter({root:document,onActivity:e=>{ if(window.CC_LOG) window.CC_LOG(`Original store action ${e.verified?'verified':'unverified'}; cart count ${e.count ?? 'not observed'}`,e.verified); }});
@@ -73,8 +79,11 @@
   }
   const schedule = () => { clearTimeout(timer); timer = setTimeout(scan,180); };
   const isUiNode = n => n.nodeType === 1 && (n.matches?.('[data-clearchoice-ui],[data-cc-adapter-ui]') || n.closest?.('[data-clearchoice-ui],[data-cc-adapter-ui]') || n.querySelector?.('[data-clearchoice-ui],[data-cc-adapter-ui]'));
-  const observer = new MutationObserver(records => { if (records.some(r => r.target !== highlighted && !r.target.parentElement?.closest('[data-clearchoice-ui]') && ![...r.addedNodes,...r.removedNodes].some(isUiNode))) { dismissed=false; schedule(); } });
-  observer.observe(document.documentElement,{ subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['disabled','aria-disabled','checked','class','style'] });
-  chrome.runtime.onMessage.addListener(message => { if (message?.type === 'STATE_CHANGED') { enabled = message.state.enabled !== false; paused = message.state.paused === true; dismissed=false; schedule(); } if (message?.type === 'RESTORE') { enabled=false; observer.disconnect(); restore(); } });
+  const observer = new MutationObserver(records => { if (records.some(r => r.target !== highlighted && !r.target.parentElement?.closest('[data-clearchoice-ui]') && ![...r.addedNodes,...r.removedNodes].some(isUiNode))) schedule(); });
+  const observe = () => observer.observe(document.documentElement,{ subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['disabled','aria-disabled','checked','class','style'] });
+  observe();
+  window.__clearChoiceResume = () => { siteOff = false; dismissed = false; observe(); schedule(); };
+  chrome.runtime.onMessage.addListener(message => { if (message?.type === 'STATE_CHANGED') { enabled = message.state.enabled !== false; paused = message.state.paused === true; dismissed=false; schedule(); } if (message?.type === 'RESTORE') { siteOff=true; observer.disconnect(); clearTimeout(timer); restore(); } });
+  try { const st = await chrome.runtime.sendMessage({ type:'GET_STATE' }); if (st && !st.error) { enabled = st.enabled !== false; paused = st.paused === true; } } catch {}
   scan();
 })();

@@ -19,14 +19,18 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
       const origin = message.origin;
       const tabId = message.tabId;
       if (!origin || !/^https?:\/\//.test(origin)) throw new Error('This page cannot be enabled.');
-      const scriptId = `cc-${btoa(origin).replace(/[^a-z0-9]/gi,'').slice(0,24)}`;
+      const scriptId = `cc2-${origin.replace(/[^a-z0-9]/gi,c => `_${c.charCodeAt(0).toString(16)}_`)}`; // injective: distinct origins never share an id
+      const legacyId = `cc-${btoa(origin).replace(/[^a-z0-9]/gi,'').slice(0,24)}`;
       if (message.enabled) {
         if (!await chrome.permissions.contains({ origins:[`${origin}/*`] })) throw new Error('Site permission is not granted.');
         await chrome.scripting.registerContentScripts([{ id:scriptId, matches:[`${origin}/*`], js:['src/content.js'], runAt:'document_idle', allFrames:false, persistAcrossSessions:true }]).catch(async e => { if (!String(e).includes('Duplicate')) throw e; });
         if (tabId != null) await chrome.scripting.executeScript({ target:{tabId}, files:['src/content.js'] });
       } else {
-        if (tabId != null) await chrome.tabs.sendMessage(tabId,{ type:'RESTORE' }).catch(() => {});
-        await chrome.scripting.unregisterContentScripts({ ids:[scriptId] }).catch(() => {});
+        const originTabs = await chrome.tabs.query({ url:`${origin}/*` }).catch(() => []);
+        const targets = new Set(originTabs.map(t => t.id).filter(id => id != null));
+        if (tabId != null) targets.add(tabId);
+        for (const id of targets) await chrome.tabs.sendMessage(id,{ type:'RESTORE' }).catch(() => {});
+        await chrome.scripting.unregisterContentScripts({ ids:[scriptId,legacyId] }).catch(() => {});
       }
       const hosts = { ...s.hosts, [origin]:message.enabled === true };
       const next={ ...s, hosts };
