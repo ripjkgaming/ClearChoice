@@ -448,3 +448,123 @@ card, about 2.0" now has a rim of at least 3.72:1. "Active nav pill vs bar,
 
 `./gradlew :clearchoice:assembleDebug` passed (JAVA_HOME=~/.local/jdk21,
 ANDROID_HOME=~/android-sdk).
+
+## Fable review 2
+
+Date: 13 November 2026. Final pass over the purple restyle (`f3ad501`) and the
+liquid glass buttons (`529fb33`), against `docs/qa/desktop-shopping.png` and
+`.agents/skills/liquid-glass-design/SKILL.md`.
+
+### Important limit
+
+**Nothing was rendered.** No emulator, device, `adb`, Xcode or Swift toolchain
+was available. Android was compiled. **iOS was not compiled.** The findings come
+from reading the code and from the platform's documented behaviour. To judge
+the rim strength, the Android glass layers were redrawn in an offline sketch
+(Python, outside the repo) using the colours and alphas from `Design.Glass`.
+That sketch is an approximation, not a screenshot.
+
+### Fixed
+
+| Platform | Problem | Change |
+|---|---|---|
+| Android | **Every pill lost its label padding.** `Design.glass` puts the glass in an `InsetDrawable` when `insetDp > 0`. An `InsetDrawable` reports its insets as padding, and `View.setBackground` then replaces the view's padding with them. The 16dp/15dp padding set in `pill()` became 0dp left and right and 6dp top and bottom, so each label touched the glass rim and short pills ("Pause", "Manage") collapsed to the 48dp minimum width. This affected Pause/Resume, the app filter, Add app, Manage/Install, the Activity filters, the Permissions/Privacy tabs and Clear local history. The fault is older than the glass commit: `pill()` has set its padding before an inset background since the first accessibility pass. It was never seen because nothing was rendered. | `Design.glass` now saves the padding before `setBackground` and restores it afterwards (`Design.java`, one line). |
+| iOS | The Features tab had no `NavigationStack`. Its "Open Experience Studio" `NavigationLink` could not navigate, so the Studio's glass buttons were unreachable, and the "Features" title was not shown. | Wrapped the Features list in a `NavigationStack`, like the Activity and Settings tabs. |
+| iOS | The Home screen has three glass controls (the hero button, "Manage ›" and Pause/Resume) with no shared container. The skill says to wrap multiple glass views in a `GlassEffectContainer`. | The Home content is now inside `GlassGroup`, which is a `GlassEffectContainer` on iOS 26 and a passthrough below. |
+| iOS | "Unverified" under each connected app was a fixed 8pt font. It was too small to read and did not follow Dynamic Type. | Changed to `.caption2`. |
+
+Pill touch targets are unchanged by the padding fix: the minimum is still
+48x48dp and the visible glass is still inset 6dp. Pills are now 32dp wider than
+before, which is the width the design always intended.
+
+### Checked, no change needed
+
+**Every button goes through the glass style.**
+
+- Android `MainActivity`: all pills go through `pill()` and then
+  `Design.glass`. The back button, the `⋮` button, the selected hero tab and
+  the selected nav item call `Design.glass` directly. No other view has its own
+  button background.
+- Android dialogs: all six dialogs are built by `dialog()`, which applies
+  `ClearChoiceDialog`. That style sets the positive, negative, neutral and
+  default button-bar styles to `ClearChoiceDialog.GlassButton`. These theme
+  attributes exist from API 24; `minSdk` is 26.
+- Android QA overlay: `Design.button` and the "Add to cart" override both call
+  `Design.glass`.
+- iOS: every `Button` uses `glassButton()` or `GlowButton`, except the two
+  kinds listed below.
+- Controls that are deliberately not glass buttons: inactive hero tabs and
+  inactive nav items (clear children inside a glass bar, so glass is not
+  nested), list rows and app cards (rows, ripple only), switches, the iOS
+  shopping-mode radio rows and `NavigationLink` row, and the iOS toolbar "Done"
+  item (system toolbar glass). The tappable text in `PriceAnnotationLayer` is
+  part of the price annotation and is service code, so it was not reviewed for
+  styling.
+
+**iOS API usage against the skill.**
+
+- `.buttonStyle(.glass)` and `.buttonStyle(.glassProminent)`: same form as the
+  skill.
+- `.glassEffect(.regular.tint(...).interactive(), in: .rect(cornerRadius: 15))`:
+  same form as the skill. It is applied after font, padding and frame, and
+  `.interactive()` is only on a button.
+- `GlassEffectContainer(spacing: 8)` around `HStack(spacing: 8)`: the same
+  spacing in both, as in the skill's example.
+- Every glass call is inside `if #available(iOS 26, *)` with a bordered or
+  gradient fallback, and inside `#if compiler(>=6.2)` so that older SDKs do not
+  see the symbols.
+- Not used, because nothing morphs or unites: `glassEffectID`,
+  `glassEffectUnion`.
+- The three Experience Studio buttons are in separate `Form` sections and have
+  no shared container. They are far apart and use button styles, not
+  `.glassEffect()`. A container around a `Form` was not added without a
+  compiler to check it.
+
+**Look against `desktop-shopping.png`.** The near-black page, violet glow,
+translucent bordered cards, lilac values, violet-to-pink primary buttons and
+dark secondary buttons are all present in the code. Two differences from the
+reference are deliberate and were kept:
+
+- The button rim is brighter than the reference's thin border (white 70% to
+  40%, against roughly 20% in the reference). In the offline sketch it reads as
+  a glass edge, not as a heavy outline, and it is what gives the buttons a 3:1
+  boundary. Weaker rims were sketched (45%/14% and 22%); they are closer to the
+  reference but fall below 3:1.
+- The pink end of the primary gradient (`#AD3A96`) is darker than the
+  reference's. The lighter pink would put white labels below 4.5:1.
+
+**Accessibility.** No content description, heading, selected state, tooltip,
+`fit()` call or stacked large-text layout was changed. The contrast tables
+above still apply, because no colour changed.
+
+### Open points
+
+1. **iOS button height.** On iOS 17–25 the `.bordered` fallback at the default
+   control size is about 34pt tall, below the 44pt guideline. This affects
+   Manage, Pause/Resume, View, Add and Apply prompt. The height of `.glass`
+   buttons on iOS 26 is not known here. It was not changed, because the fix
+   (`.controlSize(.large)` or label padding) changes the layout of the
+   demo-store rows and could not be checked.
+2. **iOS fixed font sizes.** The hero headline (29pt) and the product emoji
+   (64pt) do not follow Dynamic Type.
+3. **Android rows after the padding fix.** Rows are tighter now that pills
+   have their real width. On a 360dp screen the Manage Apps row leaves about
+   125dp for the app name beside "Manage" and the switch, and the service
+   banner text will wrap to two lines beside "Pause". These are estimates.
+4. `apps/android/ClearChoice-debug.apk` was not rebuilt, so the committed APK
+   does not contain the padding fix.
+
+### Still needs a device or Xcode
+
+- All "Not verified" points from the two sections above.
+- iOS: that the file compiles on Xcode 26 and on Xcode 16, including
+  `GlassGroup` around the Home content and the new `NavigationStack`.
+- iOS: that the View and Add buttons do not merge into one shape at rest with
+  container spacing equal to stack spacing.
+- Android: pill padding and widths on screen, at font scales 1.0 to 2.0.
+
+### Verification run
+
+`./gradlew :clearchoice:assembleDebug` passed (JAVA_HOME=~/.local/jdk21,
+ANDROID_HOME=~/android-sdk). This proves the Android code compiles and
+packages. It does not prove the layout, and it says nothing about iOS.

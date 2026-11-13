@@ -23,8 +23,10 @@ final class Design {
   * The single shared button factory. Every tappable button in the app gets its material, press ripple,
   * focus ring, 48dp minimum target and label colour here. insetDp insets the glass vertically inside a
   * taller touch target. Large text still wraps: no maxLines or fixed height is set.
+  * The caller's padding is restored after setBackground, because an InsetDrawable background reports
+  * its insets as padding and View.setBackground would replace the label padding with them.
   */
- static <T extends View> T glass(T v,int style,int radiusDp,int insetDp){Context c=v.getContext();int in=dp(c,insetDp);Drawable fill=new Glass(c,style,radiusDp,true);Drawable ripple=new RippleDrawable(android.content.res.ColorStateList.valueOf(style>=GLASS_LIGHT?RIPPLE_LIGHT:RIPPLE),null,shape(0xff000000,dp(c,radiusDp)));v.setBackground(in>0?new InsetDrawable(fill,0,in,0,in):fill);v.setForeground(in>0?new InsetDrawable(ripple,0,in,0,in):ripple);v.setMinimumHeight(dp(c,48));v.setMinimumWidth(dp(c,48));v.setClickable(true);v.setFocusable(true);if(v instanceof TextView)((TextView)v).setTextColor(style==GLASS_LIGHT?PURPLE:style==GLASS_REGULAR?TEXT:0xffffffff);return v;}
+ static <T extends View> T glass(T v,int style,int radiusDp,int insetDp){Context c=v.getContext();int in=dp(c,insetDp);Drawable fill=new Glass(c,style,radiusDp,true);Drawable ripple=new RippleDrawable(android.content.res.ColorStateList.valueOf(style>=GLASS_LIGHT?RIPPLE_LIGHT:RIPPLE),null,shape(0xff000000,dp(c,radiusDp)));int pl=v.getPaddingLeft(),pt=v.getPaddingTop(),pr=v.getPaddingRight(),pb=v.getPaddingBottom();v.setBackground(in>0?new InsetDrawable(fill,0,in,0,in):fill);v.setPadding(pl,pt,pr,pb);v.setForeground(in>0?new InsetDrawable(ripple,0,in,0,in):ripple);v.setMinimumHeight(dp(c,48));v.setMinimumWidth(dp(c,48));v.setClickable(true);v.setFocusable(true);if(v instanceof TextView)((TextView)v).setTextColor(style==GLASS_LIGHT?PURPLE:style==GLASS_REGULAR?TEXT:0xffffffff);return v;}
  /** Non-interactive regular glass for a group of buttons (tab track, nav bar): the Android stand-in for GlassEffectContainer. Its children stay clear so glass is not nested; only the selected child gets a glass lens. */
  static Drawable glassBar(Context c,int radiusDp){return new Glass(c,GLASS_REGULAR,radiusDp,false);}
  /**
