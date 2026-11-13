@@ -7,7 +7,8 @@ const PROVIDER_MODE=process.env.AI_PROVIDER_MODE||'local';
 const API_KEY=process.env.AI_PROVIDER_API_KEY||(PROVIDER_MODE==='local'?'ollama-local':'');
 const PROVIDER_URL=process.env.AI_PROVIDER_URL||(PROVIDER_MODE==='local'?'http://127.0.0.1:11434/v1/chat/completions':'');
 const MODEL=process.env.AI_PROVIDER_MODEL||(PROVIDER_MODE==='local'?'qwen3:4b-instruct':'configured-model');
-const TIMEOUT_MS=Math.min(Number(process.env.AI_TIMEOUT_MS||20000),45000), RATE=Math.min(Number(process.env.AI_RATE_LIMIT_PER_MINUTE||30),300);
+const envNum=(name,def)=>{const n=Number(process.env[name]);return Number.isFinite(n)&&n>0?n:def};
+const TIMEOUT_MS=Math.min(envNum('AI_TIMEOUT_MS',20000),45000), RATE=Math.min(envNum('AI_RATE_LIMIT_PER_MINUTE',30),300);
 const MAX_BODY=1_000_000, MAX_PROVIDER_BODY=250_000, CACHE_TTL=300_000, CACHE_MAX=200;
 const allowedOrigins=new Set((process.env.UI_ORIGINS||'http://127.0.0.1:4173,http://localhost:4173').split(',').map(x=>x.trim()).filter(Boolean));
 const cache=new Map(), requests=new Map();
@@ -52,7 +53,7 @@ async function evaluate(body){
     try{payload=JSON.parse(raw)}catch{throw new Error('provider response was not JSON')}
     const content=payload.choices?.[0]?.message?.content??payload.message?.content??payload;
     const parsed=typeof content==='string'?JSON.parse(content):content;
-    if(!parsed||Object.keys(parsed).length!==2||!Object.hasOwn(parsed,'layout')||!Object.hasOwn(parsed,'suggestions')||!Array.isArray(parsed.suggestions))throw new Error('provider response schema invalid');
+    if(!parsed||Object.keys(parsed).length!==2||!Object.hasOwn(parsed,'layout')||!Object.hasOwn(parsed,'suggestions')||!Array.isArray(parsed.suggestions)||parsed.suggestions.length!==0)throw new Error('provider response schema invalid');
     const suggestions=validateSuggestions(safe,parsed.suggestions).map(s=>({...s,sourceRevision:snapshot.sourceRevision}));
     let layout=null;
     if(parsed.layout===null&&safe.elements.some(e=>e.productId&&e.type==='heading'))throw new Error('layout is required for a product catalog');
@@ -104,11 +105,11 @@ const server=createServer((req,res)=>{
   }
   if(req.method!=='POST'||req.url!=='/v1/evaluate'){write(res,404,{error:'not_found'},origin);return}
   if(!checkRate(req.socket.remoteAddress||'unknown')){write(res,429,{error:'rate_limited'},origin);return}
-  let raw='',tooLarge=false;
-  req.on('data',chunk=>{raw+=chunk;if(raw.length>MAX_BODY){tooLarge=true;raw='';req.resume()}});
+  const parts=[];let size=0,tooLarge=false;
+  req.on('data',chunk=>{if(tooLarge)return;size+=chunk.length;if(size>MAX_BODY){tooLarge=true;parts.length=0;req.resume();return}parts.push(chunk)});
   req.on('end',async()=>{
     if(tooLarge){write(res,413,{error:'request_too_large'},origin);return}
-    let body;try{body=JSON.parse(raw)}catch{write(res,400,{error:'invalid_request'},origin);return}
+    let body;try{body=JSON.parse(Buffer.concat(parts).toString('utf8'))}catch{write(res,400,{error:'invalid_request'},origin);return}
     try{write(res,200,await evaluate(body),origin)}
     catch(error){const badInput=error instanceof TypeError||/sourceRevision|elements|must be|element \d/.test(error.message);const invalidOutput=/stale|unknown|duplicate|invalid|sensitive|allowed|price|currency|action|layout|revision|visible/i.test(error.message);write(res,badInput?400:invalidOutput?422:502,{error:badInput?'invalid_request':invalidOutput?'invalid_suggestion':'evaluation_failed'},origin)}
   });

@@ -6,7 +6,7 @@ import {homedir} from 'node:os';
 import {resolve} from 'node:path';
 import {WebSocketServer,WebSocket} from 'ws';
 const root=resolve('apps/emulator-viewer'),port=Number(process.env.EMULATOR_VIEWER_PORT||4300),forward=27183;
-const adb=process.env.ADB||`${homedir()}/Library/Android/sdk/platform-tools/adb`,serial=process.env.ANDROID_SERIAL||'emulator-5554';
+const sdk=process.env.ANDROID_HOME||process.env.ANDROID_SDK_ROOT,adb=process.env.ADB||(sdk?`${sdk}/platform-tools/adb`:`${homedir()}/Library/Android/sdk/platform-tools/adb`),serial=process.env.ANDROID_SERIAL||'emulator-5554';
 const env={...process.env,ADB_MDNS:'0'},run=(...args)=>execFileSync(adb,['-s',serial,...args],{env,encoding:'utf8'});
 const allowed=new Set([`http://127.0.0.1:${port}`,`http://localhost:${port}`,'http://127.0.0.1:4173','http://localhost:4173']);
 let config=null,gop=[],gopBytes=0,buffer=Buffer.alloc(0),frames=0,bytes=0,control,video,child,ready=false,lastError='Starting real Android stream';

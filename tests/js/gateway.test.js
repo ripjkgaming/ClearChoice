@@ -77,3 +77,16 @@ test('review mode validates model evidence and rejects stale, unknown, invented,
   const response=await request();assert.equal(response.status,200);const result=await response.json();assert.equal(result.mode,'local-ai-review');assert.equal(result.layout,null);assert.equal(result.suggestions.length,3);assert.deepEqual(result.suggestions.map(s=>s.sourceId),body.perception.elements.map(e=>e.id));assert.doesNotMatch(received,/private-revision|private-extra|private-stock|private-terms/);
   for(variant of ['stale','unknown','invented','action'])assert.equal((await request()).status,422,variant);
 });
+
+test('request size limit counts bytes, not UTF-16 characters',async t=>{
+  const url=await startGateway(t,freePort());
+  const text='€'.repeat(400_000); // 400k chars, 1.2 MB UTF-8
+  const response=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({perception:{sourceRevision:'r',elements:[{id:'a',type:'text',text,visible:true}]}})});
+  assert.equal(response.status,413);
+});
+
+test('non-numeric rate limit env falls back to the default instead of disabling limiting',async t=>{
+  const url=await startGateway(t,freePort(),{AI_RATE_LIMIT_PER_MINUTE:'abc',AI_TIMEOUT_MS:'abc'});
+  const statuses=[];for(let i=0;i<40;i++)statuses.push((await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:'{}'})).status);
+  assert.ok(statuses.includes(429));
+});
