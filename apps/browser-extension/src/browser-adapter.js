@@ -12,7 +12,7 @@ export function mountShoppingAdapter({ root=globalThis.document, container=root.
   const cartNode=()=>root.querySelector('[data-cc-cart-count]');
   const products=()=>[...root.querySelectorAll('[data-cc-product]')].filter(card=>card.querySelector('[data-cc-price]')&&card.querySelector('[data-add][data-cc-action="add-to-cart"]'));
   if (!products().length) return Object.freeze({available:false,refresh:()=>false,restore:()=>{}});
-  const generated=new WeakSet(), used=new Set(); let destroyed=false, timer, selectedLayout=null;
+  const generated=new WeakSet(), used=new Set(); let destroyed=false, timer, selectedLayout=null, renderedRevision='';
   const idFor=el=>{ let id=el.getAttribute(ATTR); if(!id){ id=crypto.randomUUID();el.setAttribute(ATTR,id);generated.add(el); } return id; };
   const nodes=()=>{
     const values=[];
@@ -39,7 +39,7 @@ export function mountShoppingAdapter({ root=globalThis.document, container=root.
     if(!panel.hidden&&!force)return true;
     try{
       const snapshot=nodes(),layout=selectedLayout?validateLayoutSpec(snapshot,selectedLayout):layoutFor(snapshot);
-      panel.dataset.layoutStyle=layout.style;
+      panel.dataset.layoutStyle=layout.style;renderedRevision=snapshot.sourceRevision;
       panel.innerHTML='<div class="cc-head"><div><strong>ClearChoice shopping mode</strong><div>Original names, prices, variants, and store actions · scroll to see all items</div></div><div><button type="button" data-refresh>Refresh items</button> <button type="button" data-close>Close</button></div></div><p class="cc-stale" hidden>Page changed. Refresh items before another action.</p><div class="cc-grid"></div>';
       panel.dataset.stale='false';
       panel.querySelector('[data-close]').addEventListener('click',()=>panel.hidden=true);
@@ -79,7 +79,7 @@ export function mountShoppingAdapter({ root=globalThis.document, container=root.
   };
   launch.addEventListener('click',()=>{if(!render(true))return;panel.hidden=false});
   root.addEventListener('click',userOriginalAdd,true);
-  const observer=new MutationObserver(records=>{if(records.some(r=>!r.target.closest?.('[data-cc-adapter-ui]')&&![...r.addedNodes,...r.removedNodes].some(n=>n.nodeType===1&&(n.matches?.('[data-cc-adapter-ui]')||n.closest?.('[data-cc-adapter-ui]'))))){clearTimeout(timer);timer=setTimeout(()=>{if(isProtected(root))restore();else if(!panel.hidden){panel.dataset.stale='true';const stale=panel.querySelector('.cc-stale');if(stale)stale.hidden=false;panel.querySelectorAll('.cc-primary,.cc-details').forEach(b=>b.disabled=true)}},100)}});
+  const observer=new MutationObserver(records=>{if(records.some(r=>!(r.target.nodeType===1?r.target:r.target.parentElement)?.closest?.('[data-cc-adapter-ui]')&&![...r.addedNodes,...r.removedNodes].some(n=>n.nodeType===1&&(n.matches?.('[data-cc-adapter-ui]')||n.closest?.('[data-cc-adapter-ui]'))))){clearTimeout(timer);timer=setTimeout(()=>{if(isProtected(root))restore();else if(!panel.hidden&&renderedRevision&&nodes().sourceRevision!==renderedRevision){panel.dataset.stale='true';const stale=panel.querySelector('.cc-stale');if(stale)stale.hidden=false;panel.querySelectorAll('.cc-primary,.cc-details').forEach(b=>b.disabled=true)}},100)}});
   observer.observe(root.documentElement,{subtree:true,childList:true,characterData:true});
   render();
   function restore(){destroyed=true;clearTimeout(timer);observer.disconnect();root.removeEventListener('click',userOriginalAdd,true);style.remove();launch.remove();panel.remove();root.querySelectorAll(`[${ATTR}]`).forEach(el=>{if(generated.has(el))el.removeAttribute(ATTR)})}
